@@ -1,0 +1,30 @@
+/* some style */
+
+#eq { 
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: row;
+    flex-direction: row;
+}
+
+#eq > div {
+    border: 1px solid black;
+    margin: 1px;
+    width: 100px;
+    text-align: center;
+}
+
+#eq .handle {
+    height: 200px;
+}
+
+#eq .moving {
+    cursor: pointer;
+}
+
+#eq .controller {
+    height: 5px;
+    border: 1px solid black;
+    position: relative;
+    
+}
