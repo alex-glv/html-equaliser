@@ -7,24 +7,46 @@
 
 (enable-console-print!)
 
-(defonce equaliser (atom {:handles [{:range "0-50hz"
-                                     :pos 190
-                                     :moving nil}
-                                    {:range "50hz-200hz"
-                                     :pos 190
-                                     :moving nil}
-                                    {:range "200hz-1Khz"
-                                     :pos 190
-                                     :moving nil}
-                                    {:range "1Khz-5Khz"
-                                     :pos 190
-                                     :moving nil}
-                                    {:range "5Khz-10Khz"
-                                     :pos 190
-                                     :moving nil}
-                                    {:range "10Khz-15Khz"
-                                     :pos 190
-                                     :moving nil}]}))
+(defonce equaliser
+  (atom
+   {
+    :handles
+    [{:range "0-50hz"
+      :pos 100      
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 1
+      :moving false}
+     {:range "50hz-200hz"
+      :pos 100      
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 2
+      :moving false}
+     {:range "200hz-1Khz"
+      :pos 100      
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 3
+      :moving false}
+     {:range "1Khz-5Khz"
+      :pos 100
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 4
+      :moving false}
+     {:range "5Khz-10Khz"
+      :pos 100      
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 5
+      :moving false}
+     {:range "10Khz-15Khz"
+      :pos 100      
+      :move-start-pos 0
+      :handle-start-pos 0
+      :index 6
+      :moving false}]}))
 
 (defn get-inner-div [handle owner]
   (reify
@@ -38,7 +60,9 @@
                             (if (:moving @handle)                              
                               (async/put! move {:client-y (. e -clientY) :handle handle})))}
         (dom/div
-         #js {:onMouseDown (fn [e] (async/put! activate handle)) 
+         #js {:onMouseDown
+              (fn [e]
+                (async/put! activate {:handle handle :client-y (. e -clientY)})) 
               :className "controller"
               :style #js{:top (str (:pos handle) "px")}
               }))
@@ -47,15 +71,29 @@
 (defn deactivate-all [handles]
   (vec (map #(assoc-in % [:moving] false) handles)))
 
+(defn pos-bounds [new-pos]
+  (cond
+    (< new-pos 0) 0
+    (> new-pos 190) 190
+    :else new-pos))
+
+(defn abs [v]
+  (cond
+    (> v 0) v
+    (< v 0) (* -1 v)
+    :else v))
+
 (om/root
  (fn [data owner]
    (reify
      om/IRenderState
      (render-state [this state]
-       (apply
-        dom/ul #js {:id "eq"
-                    :onMouseUp (fn [e] (async/put! (:deactivate state) data))}
-        (om/build-all get-inner-div (:handles data) {:init-state state})))
+       (let [deact-fn (fn [e] (async/put! (:deactivate state) data))]
+         (apply
+          dom/ul #js {:id "eq"
+                      :onMouseUp deact-fn
+                      :onMouseLeave deact-fn}
+          (om/build-all get-inner-div (:handles data) {:init-state state}))))
      
      om/IInitState
      (init-state [_] {:move (async/chan)
@@ -68,10 +106,13 @@
              activate (om/get-state owner :activate)]
          (async-macros/go
            (loop []
-             (let [handle (async/<! activate)]
+             (let [{:keys [handle client-y]} (async/<! activate)]               
+               (om/transact! data :handles (fn [all] (vec (map #(assoc-in % [:handle-start-pos] (:pos %)) all))))
+               (om/transact! handle :move-start-pos #(identity client-y))
                (om/transact! data :handles #(deactivate-all %))
                (om/transact! handle (fn [x] (assoc-in x [:moving] true))))
              (recur)))
+         
          (async-macros/go
            (loop []
              (let [_ (async/<! deactivate)]               
@@ -82,9 +123,20 @@
          (async-macros/go
            (loop []
              (let [{:keys [client-y handle]} (async/<! move)]
-               (om/transact! handle (fn [x] (assoc-in x [:pos] (* 190  (/ (- client-y 18) (- 217 18)))))))
+               (om/transact!
+                (:handles data)
+                (fn [all]
+                  (let [curr-handle (first (filter #(= (:moving %) true) all))]
+                    (vec (map (fn [x]
+                                (assoc-in
+                                 x [:pos]
+                                 (let [i (:index curr-handle)
+                                       n (:index x)
+                                       weight (- 1 (/ (abs (- i n)) i))
+                                       new-pos (* weight (+ (:handle-start-pos x) (- client-y (:move-start-pos x))))]                                   
+                                   (pos-bounds new-pos)))) all))))))
              (recur)))))))
  equaliser
  {:target (. js/document (getElementById "app"))})
 
-                                        ; ;
+
