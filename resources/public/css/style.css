@@ -9,13 +9,15 @@
 
 #eq > div {
     border: 1px solid black;
-    margin: 1px;
-    width: 100px;
+    margin: 3px;
+    width: 20px;
     text-align: center;
+    
 }
 
 #eq .handle {
     height: 200px;
+    margin:0 2px 0 2px;
 }
 
 #eq .moving {

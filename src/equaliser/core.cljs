@@ -11,42 +11,12 @@
   (atom
    {
     :handles
-    [{:range "0-50hz"
-      :pos 100      
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 1
-      :moving false}
-     {:range "50hz-200hz"
-      :pos 100      
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 2
-      :moving false}
-     {:range "200hz-1Khz"
-      :pos 100      
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 3
-      :moving false}
-     {:range "1Khz-5Khz"
-      :pos 100
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 4
-      :moving false}
-     {:range "5Khz-10Khz"
-      :pos 100      
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 5
-      :moving false}
-     {:range "10Khz-15Khz"
-      :pos 100      
-      :cursor-start-pos 0
-      :handle-start-pos 0
-      :index 6
-      :moving false}]}))
+    (vec (map #(identity {:range ""
+                          :pos 100      
+                          :cursor-start-pos 0
+                          :handle-start-pos 0
+                          :index %
+                          :moving false}) (range 1 36)))}))
 
 (defn get-inner-div [handle owner]
   (reify
@@ -120,6 +90,7 @@
                              :handles
                              #(deactivate-all %)))
              (recur)))
+         
          (async-macros/go
            (loop []
              (let [{:keys [client-y]} (async/<! move)]
@@ -133,8 +104,9 @@
                                  x [:pos]
                                  (let [i (:index curr-handle)
                                        n (:index x)
-                                       weight (- 1 (/ (abs (- n i)) 6))
-                                       new-pos (+ (:handle-start-pos x) (* weight (- client-y (:cursor-start-pos curr-handle))))                                       
+                                       weight (- 1 (/ (abs (- n i)) (count all)))                                       
+                                       new-pos (+ (:handle-start-pos x)
+                                                  (* weight (- client-y (:cursor-start-pos curr-handle))))
                                        ]
                                    (pos-bounds new-pos))))
                               all))))))
