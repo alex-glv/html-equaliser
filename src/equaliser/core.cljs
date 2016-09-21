@@ -13,37 +13,37 @@
     :handles
     [{:range "0-50hz"
       :pos 100      
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 1
       :moving false}
      {:range "50hz-200hz"
       :pos 100      
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 2
       :moving false}
      {:range "200hz-1Khz"
       :pos 100      
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 3
       :moving false}
      {:range "1Khz-5Khz"
       :pos 100
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 4
       :moving false}
      {:range "5Khz-10Khz"
       :pos 100      
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 5
       :moving false}
      {:range "10Khz-15Khz"
       :pos 100      
-      :move-start-pos 0
+      :cursor-start-pos 0
       :handle-start-pos 0
       :index 6
       :moving false}]}))
@@ -108,7 +108,7 @@
            (loop []
              (let [{:keys [handle client-y]} (async/<! activate)]               
                (om/transact! data :handles (fn [all] (vec (map #(assoc-in % [:handle-start-pos] (:pos %)) all))))
-               (om/transact! handle :move-start-pos #(identity client-y))
+               (om/transact! handle :cursor-start-pos #(identity client-y))
                (om/transact! data :handles #(deactivate-all %))
                (om/transact! handle (fn [x] (assoc-in x [:moving] true))))
              (recur)))
@@ -122,9 +122,10 @@
              (recur)))
          (async-macros/go
            (loop []
-             (let [{:keys [client-y handle]} (async/<! move)]
+             (let [{:keys [client-y]} (async/<! move)]
                (om/transact!
-                (:handles data)
+                data
+                :handles
                 (fn [all]
                   (let [curr-handle (first (filter #(= (:moving %) true) all))]
                     (vec (map (fn [x]
@@ -132,11 +133,12 @@
                                  x [:pos]
                                  (let [i (:index curr-handle)
                                        n (:index x)
-                                       weight (- 1 (/ (abs (- i n)) i))
-                                       new-pos (* weight (+ (:handle-start-pos x) (- client-y (:move-start-pos x))))]                                   
-                                   (pos-bounds new-pos)))) all))))))
+                                       weight (- 1 (/ (abs (- n i)) 6))
+                                       new-pos (+ (:handle-start-pos x) (* weight (- client-y (:cursor-start-pos curr-handle))))                                       
+                                       ]
+                                   (pos-bounds new-pos))))
+                              all))))))
              (recur)))))))
  equaliser
  {:target (. js/document (getElementById "app"))})
-
 
